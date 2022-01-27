@@ -3,7 +3,7 @@ from openpyxl import load_workbook
 
 path_as400 = r"D:\comparison\as400file"
 path_sit = r"D:\comparison\sitfile"
-path_result = r"D:\result.txt"
+path_result = r"D:\comparison\result.txt"
 path_format = r"D:\comparison\報送格式.xlsx"
 
 
@@ -28,6 +28,7 @@ def compareFile(filename):
     as400_file_path = os.path.join(path_as400, filename)
     sit_file_path = os.path.join(path_sit, filename)
     filecode = filename.split(".")[1]
+    # print(filecode)
     try:
         wb = load_workbook(filename=path_format)
     except:
@@ -73,7 +74,7 @@ def compareFile(filename):
 
     '''讀取格式'''
     mr = sheet.max_row
-
+    # print(mr)
     set_list = {}  # 格式dict {欄位名稱:長度}
     key_list = []  # Key值欄位名稱
     column_list_A = []  # AS400 column值dict
@@ -91,10 +92,14 @@ def compareFile(filename):
         start = 0
         A_dict = {}
         A_dict = dict(no=as400_readlines.index(al)+1)
+        # print(set_list)
         for sing in set_list:
-            end = start + set_list[sing]
-            A_dict.update([(sing, al[start:end])])
-            start = end
+            try:
+                end = start + set_list[sing]
+                A_dict.update([(sing, al[start:end])])
+                start = end
+            except:
+                input(f"讀取中發生錯誤:{filecode}讀取範圍{mr}，請檢查是否正確。按enter離開。")
 
         '''以list存入as400拆分後的筆數+各欄位值'''
         column_list_A.append(A_dict)
@@ -133,14 +138,16 @@ def compareFile(filename):
             '''詳細檢核'''
             a = check_list_A.index(ca_str) + 1
             b = ca["no"]
+            reStr = ""
             for aa in column_list_S:
                 if aa["no"] == a:
                     for rr in set_list:
                         if ca[rr] == aa[rr]:
                             pass
                         else:
-                            return "第" + str(b) + "資料與比對資料第" + str(a) + "筆相同，但" + rr + "值不同，須檢視"
-
+                            reStr = reStr + "第" + str(b) + "資料與比對資料第" + str(a) + "筆相同，但" + rr + "值不同，須檢視(as400為"+str(ca[rr])+"，sit為"+str(aa[rr])+")\n"
+                    if len(reStr) != 0:
+                        return reStr 
         else:
             return "第" + str(ca["no"]) + "筆資料無相同key值"
 
@@ -162,9 +169,10 @@ if __name__ == '__main__':
                 pass
             else:
                 f.write(f"缺少檔案:{al}，略過比對\r")
-
+        # print(len(comp_list))
         '''比對各檔案'''
         for cl in comp_list:
+            # print(cl)
             result = compareFile(cl)
             f.write(f"檔案:{cl}=>{result}\r")
             # 若檔案皆相同，則result檔不寫入資料，視為成功
